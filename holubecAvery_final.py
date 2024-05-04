@@ -1,16 +1,22 @@
 import pygame
 import sys
 
-# Initialize pygame
+'''
+create an instance of pygame
+'''
 pygame.init()
 
-# Set up initial display size
+'''
+create window size for image viewer
+'''
 screen_width = 800
 screen_height = 600
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 pygame.display.set_caption("Image Viewer")
 
-# Function to resize the display
+'''
+method that handles screen resizing
+'''
 def resize_display(width, height):
     global screen, screen_width, screen_height
     screen_width = width
@@ -18,66 +24,108 @@ def resize_display(width, height):
     screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
     pygame.display.set_caption("Image Viewer")
 
-# Function to convert image to monochrome
+'''
+method to convert image to monochromatic scale
+'''
 def monochrome(image):
-    # Create a new surface with the same size and convert it to grayscale
+    '''
+    create a new pygame surface using the image dimensions 
+    and modify the pixel value to become monochromatic
+    '''
     monochrome_image = pygame.Surface(image.get_size()).convert_alpha()
     
-    # Iterate through each pixel and calculate the luminance value
+    '''
+    check each pixel and calculate its new luminance value
+    '''
     for x in range(image.get_width()):
         for y in range(image.get_height()):
             r, g, b, _ = image.get_at((x, y))
-            # Calculate luminance value using standard formula
+            '''
+            formula for luminance
+            '''
             luminance = int(0.3 * r + 0.59 * g + 0.11 * b)
-            # Set the pixel value in the monochrome image
+            '''
+            apply luminance value to pixels in the new image
+            '''
             monochrome_image.set_at((x, y), (luminance, luminance, luminance))
     
     return monochrome_image
 
-# Function to pick color from image
+'''
+method to allow user to pick color
+'''
 def pick_color(image, pos):
-    # Get color at the clicked position
+    '''
+    get color where the user clicked 
+    '''
     color = image.get_at(pos)
     return color
 
-# Function to adjust image based on last picked color
+'''
+method to boost selected color 
+'''
 def boost_image(image, last_color):
-    # Create a copy of the image to modify
+    '''
+    make a copy of the image so we can modify
+    it without harming the original
+    '''
     modified_image = image.copy()
-    # Iterate through each pixel
+    '''
+    check pixel color at each position
+    '''
     for x in range(modified_image.get_width()):
         for y in range(modified_image.get_height()):
             r, g, b, a = modified_image.get_at((x, y))
-            # If the pixel color is the same or darker than the last color picked, set it to black
+            '''
+            if the pixel color is the same or darker 
+            than the last color picked by the user 
+            set it to black
+            '''
             if r <= last_color[0] and g <= last_color[1] and b <= last_color[2]:
                 modified_image.set_at((x, y), (0, 0, 0, 255))
     return modified_image
 
-# Function to save black pixels to a transparent image
+'''
+method to extract lineart from monochromatic version of image
+'''
 def save_black_pixels(image):
-    # Create a new surface with the same size and convert it to transparent
+    '''
+    create a new transparent image of the same size as the original
+    '''
     transparent_image = pygame.Surface(image.get_size(), pygame.SRCALPHA)
     
-    # Iterate through each pixel and set black pixels to opaque
+    '''
+    check the rgb value of each pixel in the monochromatic image,
+    if value is pure black (or 0, 0, 0) then copy that pixel's location
+    to the transparent image
+    '''
     for x in range(image.get_width()):
         for y in range(image.get_height()):
             r, g, b, _ = image.get_at((x, y))
             if r == 0 and g == 0 and b == 0:
                 transparent_image.set_at((x, y), (0, 0, 0, 255))
     
-    # Save the transparent image
+    '''
+    saves the new transparent image
+    '''
     pygame.image.save(transparent_image, "Lineart.png")
 
-# Get image path from user input
-image_path = input("Enter the path to the image (e.g., image.jpg): ")
+'''
+get image name from user input
+'''
+image_path = input("Enter the name of the image (ex: 'image.jpg'/'image.png'): ")
 
 try:
-    # Load original image
+    '''
+    open orignal image
+    '''
     original_image = pygame.image.load(image_path)
 
-    # Check if the image loaded successfully
+    '''
+    check if the image was properly opened
+    '''
     if original_image is None:
-        raise ValueError("Unable to load image. Make sure the file path is correct.")
+        raise ValueError("Unable to load image. Make sure the file name is correct.")
 except pygame.error as e:
     print("Error loading image:", e)
     pygame.quit()
@@ -87,48 +135,75 @@ except Exception as e:
     pygame.quit()
     sys.exit()
 
-# Create monochrome image
+'''
+convert original image to monochrome
+'''
 monochrome_image = monochrome(original_image)
 
-# Initialize last picked color to black
+'''
+boost last picked color
+'''
 last_picked_color = (0, 0, 0)
 
-# Main loop
+'''
+Main loop to update image
+'''
 while True:
-    # Event handling
+    '''
+    checking for button presses and resizing
+    '''
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
         elif event.type == pygame.VIDEORESIZE:
-            # Resize the display if the window is resized
+            '''
+            call resize_display method if window width or height has changed
+            '''
             resize_display(event.w, event.h)
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            # If the left mouse button is clicked, pick the color from the image
+            '''
+            check to see if user has clicked on screen
+            then save the color and print it in the terminal
+            '''
             if event.button == 1:
-                # Adjust the mouse position to account for the position of the image
+                '''
+                verify that mouse position is correct for window width and height 
+                '''
                 adjusted_pos = (event.pos[0] - (screen_width - monochrome_image.get_width()) // 2, 
                                 event.pos[1] - (screen_height - monochrome_image.get_height()) // 2)
                 color_picked = pick_color(monochrome_image, adjusted_pos)
                 last_picked_color = color_picked
                 print("Color picked:", color_picked)
         elif event.type == pygame.KEYDOWN:
-            # If the user presses the 'b' key, update the image with boosted colors
+            '''
+            check to see if the 'b' key has been pressed and call the boost
+            if the 'b' key wasn't pressed, check to see if the 's' key was pressed
+            if the 's' key was pressed call the save function
+            '''
             if event.key == pygame.K_b:
                 monochrome_image = boost_image(monochrome_image, last_picked_color)
-            # If the user presses the 's' key, save black pixels to a transparent image
             elif event.key == pygame.K_s:
                 save_black_pixels(monochrome_image)
 
-    # Fill screen with white background
+    '''
+    make the background of the image viewer white
+    after the original image has been imported
+    '''
     screen.fill((255, 255, 255))
 
-    # Calculate the position to center the image
+    '''
+    calculate center of image viewer window to center imported image
+    '''
     image_x = (screen_width - monochrome_image.get_width()) // 2
     image_y = (screen_height - monochrome_image.get_height()) // 2
 
-    # Display monochrome image
+    '''
+    display converted version of image
+    '''
     screen.blit(monochrome_image, (image_x, image_y))
 
-    # Update display
+    '''
+    update display after each loop
+    '''
     pygame.display.update()
